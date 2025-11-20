@@ -1,3 +1,4 @@
+#updated from vs code
 fastapi[standard]==0.115.13
 PyMySQL==1.1.1
 SQLALchemy==2.0.43
