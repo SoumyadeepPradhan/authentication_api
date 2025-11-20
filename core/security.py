@@ -1,4 +1,5 @@
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status, Request
+from fastapi.requests import HTTPConnection
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer
 from datetime import timedelta, datetime
@@ -34,7 +35,7 @@ def get_token_payload(token):
         return None
     return payload
 
-def get_current_user(token: str = Depends(oauth2_scheme), db=None):
+async def get_current_user(token: str = Depends(oauth2_scheme), db=None):
     payload = get_token_payload(token)
     if not payload or type(payload) is not dict:
         return None
@@ -49,20 +50,41 @@ def get_current_user(token: str = Depends(oauth2_scheme), db=None):
     user = db.query(UserModel).filter(UserModel.email == email_id).first()
     return user
 
+# def require_user(request: Request):
+#     # If you return UnauthenticatedUser, Starlette sets is_authenticated=False
+#     if not getattr(request.user, "is_authenticated", False):
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="Authentication required",
+#             headers={"WWW-Authenticate": "Bearer"},
+#         )
+#     return request.user
 class JWTAuth:
-    async def authenticate(self, conn):
-        guest = AuthCredentials(['unauthenticate']), UnauthenticatedUser()
+    async def authenticate(self, conn:HTTPConnection):
+        guest = AuthCredentials(['unauthenticated']), UnauthenticatedUser()
         if 'authorization' not in conn.headers:
             return guest
         
-        token = conn.headers.get('authorization').split(' ')[1] #Bearer token_hash
-        if not token:
+        # token = conn.headers.get('authorization').split(' ')[1] #Bearer token_hash
+        # if not token:
+        #     return guest
+        auth = conn.headers.get("authorization")
+        if not auth:
             return guest
         
-        user=get_current_user(token=token)
+        # Expect: "Bearer <token>"
+        try:
+            scheme, token = auth.split(" ", 1)
+        except ValueError:
+            return guest
+
+        if scheme.lower() != "bearer" or not token:
+            return guest
+        
+        user=await get_current_user(token=token)
 
         if not user:
             return guest
         
-        return AuthCredentials('Authenticated'),user
+        return AuthCredentials(['Authenticated']),user
         
