@@ -10,9 +10,6 @@ pydantic-settings==2.9.1
 passlib[bcrypt]==1.7.4
 python-jose[cryptography]==3.3.0
 bcrypt==3.2.2
-#test
-#Test 2
-#Test 3
 #Test 4
 # Test 7
 # Test6
